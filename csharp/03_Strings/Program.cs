@@ -61,30 +61,77 @@ Console.WriteLine(MascararEmail("marcus@obra.dev"));
 
 static string Inverter(string texto)
 {
-    // TODO: implemente
-    return "";
+    /*
+     * String em C# é imutável: não dá para trocar texto[0] de lugar. O
+     * caminho é copiar para um char[], inverter o array (esse sim é
+     * mutável) e montar uma string nova a partir dele.
+     *
+     * Vale a mesma ressalva do PHP: isto inverte UNIDADES do char, e um
+     * emoji ou um acento composto ocupa mais de uma. Para texto comum
+     * resolve; para Unicode completo, veja StringInfo.
+     */
+    char[] letras = texto.ToCharArray();
+    Array.Reverse(letras);
+
+    return new string(letras);
 }
 
 static bool EhPalindromo(string texto)
 {
-    // TODO: implemente
-    return false;
+    // Normaliza primeiro — minúsculas e sem espaço —, depois compara com
+    // a própria inversão. Comparar antes de normalizar reprovaria "Ana".
+    string limpo = texto.ToLowerInvariant().Replace(" ", "");
+
+    return limpo == Inverter(limpo);
 }
 
 static int ContarVogais(string texto)
 {
-    // TODO: implemente
-    return 0;
+    const string vogais = "aeiou";
+    int total = 0;
+
+    foreach (char letra in texto.ToLowerInvariant())
+    {
+        if (vogais.Contains(letra))
+        {
+            total++;
+        }
+    }
+
+    return total;
 }
 
 static string Iniciais(string nomeCompleto)
 {
-    // TODO: implemente
-    return "";
+    /*
+     * StringSplitOptions.RemoveEmptyEntries evita que dois espaços
+     * seguidos virem uma inicial vazia — " marcus  silva " daria
+     * "..M..S." sem ele.
+     */
+    string[] partes = nomeCompleto.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+    var iniciais = new System.Text.StringBuilder();
+
+    foreach (string parte in partes)
+    {
+        iniciais.Append(char.ToUpperInvariant(parte[0])).Append('.');
+    }
+
+    return iniciais.ToString();
 }
 
 static string MascararEmail(string email)
 {
-    // TODO: implemente
-    return "";
+    int arroba = email.IndexOf('@');
+
+    // Sem arroba não é e-mail: devolve como veio em vez de inventar.
+    if (arroba <= 0)
+    {
+        return email;
+    }
+
+    string usuario = email[..arroba];
+    string dominio = email[arroba..];
+
+    // new string('*', n) repete o caractere n vezes — é o str_repeat do PHP.
+    return usuario[0] + new string('*', usuario.Length - 1) + dominio;
 }

@@ -36,20 +36,40 @@ declare(strict_types=1);
 /** @return string[] */
 function tabuada(int $numero): array
 {
-    // TODO: implemente
-    return [];
+    $linhas = [];
+
+    for ($i = 1; $i <= 10; $i++) {
+        // Chaves em volta da expressão: sem elas, "$numero * $i" dentro da
+        // string não é calculado — só $numero seria substituído.
+        $linhas[] = "{$numero} x {$i} = " . ($numero * $i);
+    }
+
+    return $linhas;
 }
 
 function somaAte(int $limite): int
 {
-    // TODO: implemente
-    return 0;
+    $soma = 0;
+
+    // Com $limite igual a 0 (ou negativo) o laço não entra nenhuma vez e a
+    // soma fica em 0, que é a resposta certa.
+    for ($i = 1; $i <= $limite; $i++) {
+        $soma += $i;
+    }
+
+    return $soma;
 }
 
 function precoComDesconto(float $preco, float $percentual): float
 {
-    // TODO: implemente
-    return 0.0;
+    /*
+     * Multiplicar pelo que SOBRA (1 - 15/100 = 0.85) em vez de calcular o
+     * desconto e subtrair. Dá no mesmo, com uma operação a menos.
+     *
+     * O round() no fim não é enfeite: 59.9 * 0.85 dá 50.914999... em ponto
+     * flutuante, e preço com sete casas decimais não existe.
+     */
+    return round($preco * (1 - $percentual / 100), 2);
 }
 
 // ---------------------------------------------------------------- saída

@@ -46,32 +46,69 @@ declare(strict_types=1);
 
 function inverter(string $texto): string
 {
-    // TODO: implemente
-    return '';
+    /*
+     * strrev inverte BYTE a byte, não letra a letra. Para "obra" dá certo;
+     * para "ação" não, porque o "ç" ocupa dois bytes em UTF-8 e eles saem
+     * trocados. Com acento, o caminho é separar em caracteres de verdade:
+     *
+     *   implode('', array_reverse(mb_str_split($texto)))
+     */
+    return strrev($texto);
 }
 
 function ehPalindromo(string $texto): bool
 {
-    // TODO: implemente
-    return false;
+    // Primeiro normaliza — minúsculas e sem espaço —, depois compara com
+    // a própria inversão. Comparar antes de normalizar reprovaria "Ana".
+    $limpo = str_replace(' ', '', mb_strtolower($texto));
+
+    return $limpo === strrev($limpo);
 }
 
 function contarVogais(string $texto): int
 {
-    // TODO: implemente
-    return 0;
+    $vogais = ['a', 'e', 'i', 'o', 'u'];
+    $total = 0;
+
+    foreach (mb_str_split(mb_strtolower($texto)) as $letra) {
+        if (in_array($letra, $vogais, true)) {
+            $total++;
+        }
+    }
+
+    return $total;
 }
 
 function iniciais(string $nomeCompleto): string
 {
-    // TODO: implemente
-    return '';
+    $iniciais = '';
+
+    // explode(' ') devolve entrada vazia quando há dois espaços seguidos;
+    // o array_filter tira essas, para " marcus  silva " não virar "..M..S.".
+    $partes = array_filter(explode(' ', trim($nomeCompleto)), static fn (string $p): bool => $p !== '');
+
+    foreach ($partes as $parte) {
+        $iniciais .= mb_strtoupper(mb_substr($parte, 0, 1)) . '.';
+    }
+
+    return $iniciais;
 }
 
 function mascararEmail(string $email): string
 {
-    // TODO: implemente
-    return '';
+    $arroba = mb_strpos($email, '@');
+
+    // Sem arroba não é e-mail: devolve como veio em vez de inventar.
+    if ($arroba === false || $arroba === 0) {
+        return $email;
+    }
+
+    $usuario = mb_substr($email, 0, $arroba);
+    $dominio = mb_substr($email, $arroba);
+
+    return mb_substr($usuario, 0, 1)
+        . str_repeat('*', mb_strlen($usuario) - 1)
+        . $dominio;
 }
 
 // ---------------------------------------------------------------- saída

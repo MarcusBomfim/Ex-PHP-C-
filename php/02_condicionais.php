@@ -44,26 +44,60 @@ declare(strict_types=1);
 
 function classificarIdade(int $idade): string
 {
-    // TODO: implemente
-    return '';
+    /*
+     * `match(true)` compara cada condição contra true e para na primeira
+     * verdadeira — é o if/elseif escrito como expressão. A ordem importa:
+     * a negativa vem antes de tudo, senão 0 a 11 nunca seria alcançado por
+     * um número negativo... mas -5 também não é <= 11? É. Por isso a
+     * checagem do inválido vem PRIMEIRO.
+     */
+    return match (true) {
+        $idade < 0 => 'idade inválida',
+        $idade <= 11 => 'criança',
+        $idade <= 17 => 'adolescente',
+        $idade <= 59 => 'adulto',
+        default => 'idoso',
+    };
 }
 
 function ehBissexto(int $ano): bool
 {
-    // TODO: implemente
-    return false;
+    /*
+     * A regra em uma linha: divisível por 4 e não por 100, OU divisível
+     * por 400.
+     *
+     * 1900 passa no "divisível por 4" mas cai no "e não por 100" — e não é
+     * divisível por 400. Resultado: comum. 2000 é divisível por 400, então
+     * o segundo lado do OU resolve sozinho.
+     */
+    return ($ano % 4 === 0 && $ano % 100 !== 0) || $ano % 400 === 0;
 }
 
 function maiorDeTres(int $a, int $b, int $c): int
 {
-    // TODO: implemente
-    return 0;
+    $maior = $a;
+
+    if ($b > $maior) {
+        $maior = $b;
+    }
+
+    if ($c > $maior) {
+        $maior = $c;
+    }
+
+    return $maior;
 }
 
 function custoDoFrete(float $pesoEmKg, bool $ehExpresso): float
 {
-    // TODO: implemente
-    return 0.0;
+    $base = match (true) {
+        $pesoEmKg <= 1.0 => 10.0,
+        $pesoEmKg <= 10.0 => 20.0,
+        default => 35.0,
+    };
+
+    // "Expresso dobra o valor FINAL": a conta da faixa vem primeiro.
+    return $ehExpresso ? $base * 2 : $base;
 }
 
 // ---------------------------------------------------------------- saída

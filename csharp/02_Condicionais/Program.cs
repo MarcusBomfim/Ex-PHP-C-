@@ -67,24 +67,63 @@ Console.WriteLine($"12 kg normal  = R$ {CustoDoFrete(12.0, false)}");
 
 static string ClassificarIdade(int idade)
 {
-    // TODO: implemente
-    return "";
+    /*
+     * Switch expression com padrões relacionais. Ele é avaliado de cima
+     * para baixo e para no primeiro que casa — por isso o `< 0` vem antes
+     * de tudo: -1 também satisfaz `<= 11`, e sem essa ordem viraria
+     * "criança".
+     *
+     * Vantagem sobre o if/else if: o compilador avisa se faltar caso. Tire
+     * o `_` do fim e ele reclama que nem todo valor está coberto.
+     */
+    return idade switch
+    {
+        < 0 => "idade inválida",
+        <= 11 => "criança",
+        <= 17 => "adolescente",
+        <= 59 => "adulto",
+        _ => "idoso",
+    };
 }
 
 static bool EhBissexto(int ano)
 {
-    // TODO: implemente
-    return false;
+    /*
+     * A regra em uma linha: divisível por 4 e não por 100, OU por 400.
+     *
+     * 1900 passa no "divisível por 4" mas cai no "e não por 100" — e não é
+     * divisível por 400. Resultado: comum. 2000 é divisível por 400, e o
+     * segundo lado do OU resolve sozinho.
+     */
+    return (ano % 4 == 0 && ano % 100 != 0) || ano % 400 == 0;
 }
 
 static int MaiorDeTres(int a, int b, int c)
 {
-    // TODO: implemente
-    return 0;
+    int maior = a;
+
+    if (b > maior)
+    {
+        maior = b;
+    }
+
+    if (c > maior)
+    {
+        maior = c;
+    }
+
+    return maior;
 }
 
 static double CustoDoFrete(double pesoEmKg, bool ehExpresso)
 {
-    // TODO: implemente
-    return 0.0;
+    double baseDoFrete = pesoEmKg switch
+    {
+        <= 1.0 => 10.0,
+        <= 10.0 => 20.0,
+        _ => 35.0,
+    };
+
+    // "Expresso dobra o valor FINAL": a faixa é calculada primeiro.
+    return ehExpresso ? baseDoFrete * 2 : baseDoFrete;
 }

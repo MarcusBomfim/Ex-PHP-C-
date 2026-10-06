@@ -64,30 +64,87 @@ foreach (var grupo in AgruparPorInicial(["ana", "bruno", "alice", "carlos", "bia
 
 static double Media(double[] notas)
 {
-    // TODO: implemente
-    return 0.0;
+    // A guarda não é frescura: Average() num array vazio lança
+    // InvalidOperationException, não devolve zero.
+    if (notas.Length == 0)
+    {
+        return 0.0;
+    }
+
+    return Math.Round(notas.Average(), 2, MidpointRounding.AwayFromZero);
 }
 
 static (int? Menor, int? Maior) MaiorEMenor(int[] numeros)
 {
-    // TODO: implemente
-    return (null, null);
+    /*
+     * Tupla nomeada: dá para devolver dois valores sem criar uma classe
+     * só para isso. É o equivalente do array associativo que o PHP
+     * devolve — com a diferença de que aqui os nomes e os tipos são
+     * conferidos na compilação.
+     */
+    if (numeros.Length == 0)
+    {
+        return (null, null);
+    }
+
+    return (numeros.Min(), numeros.Max());
 }
 
 static List<int> ApenasPares(int[] numeros)
 {
-    // TODO: implemente
-    return [];
+    // Versão LINQ. Na mão seria um foreach com if e lista.Add(n) —
+    // vale escrever as duas e comparar.
+    return numeros.Where(n => n % 2 == 0).ToList();
 }
 
 static Dictionary<string, int> ContarOcorrencias(string[] palavras)
 {
-    // TODO: implemente
-    return [];
+    /*
+     * StringComparer.OrdinalIgnoreCase no construtor: o próprio dicionário
+     * passa a tratar "obra" e "Obra" como a mesma chave, e não é preciso
+     * normalizar cada palavra antes. No PHP isso não existe — lá a chave
+     * tem que ser passada já em minúsculas.
+     */
+    var contagem = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+    foreach (string palavra in palavras)
+    {
+        // CollectionsMarshal à parte, este é o jeito legível: pega o atual
+        // (0 se não existe) e grava o incrementado.
+        contagem.TryGetValue(palavra, out int atual);
+        contagem[palavra] = atual + 1;
+    }
+
+    return contagem;
 }
 
 static Dictionary<char, List<string>> AgruparPorInicial(string[] nomes)
 {
-    // TODO: implemente
-    return [];
+    var grupos = new Dictionary<char, List<string>>();
+
+    foreach (string nome in nomes)
+    {
+        if (string.IsNullOrWhiteSpace(nome))
+        {
+            continue;
+        }
+
+        char inicial = char.ToUpperInvariant(nome[0]);
+
+        /*
+         * Aqui está a diferença mais visível para o PHP. Lá,
+         * $grupos[$inicial][] = $nome cria o array interno sozinho. Em C#
+         * é preciso criar a lista na primeira vez — senão a chave não
+         * existe e o acesso lança KeyNotFoundException.
+         */
+        if (!grupos.TryGetValue(inicial, out List<string>? doGrupo))
+        {
+            doGrupo = [];
+            grupos[inicial] = doGrupo;
+        }
+
+        doGrupo.Add(nome);
+    }
+
+    return grupos;
 }

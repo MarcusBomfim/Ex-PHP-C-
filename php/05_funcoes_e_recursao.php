@@ -39,38 +39,103 @@ declare(strict_types=1);
 | fibonacci(40) demora bastante com a versão recursiva simples. Por quê?
 | O que mudaria se você guardasse os resultados já calculados?
 |
+| RESPOSTA: cada chamada dispara outras duas, então o número de chamadas
+| dobra a cada nível — fibonacci(40) faz mais de 300 milhões delas, e quase
+| todas recalculam algo que já foi calculado. fibonacci(35) é computado
+| milhares de vezes. Guardando cada resultado num array (memoização), cada
+| valor é calculado uma vez só e o custo cai de exponencial para linear.
+| A versão memoizada está no fim do arquivo.
+|
 | Rode com:  php php/05_funcoes_e_recursao.php
 |
 */
 
 function fatorial(int $n): int
 {
-    // TODO: implemente de forma recursiva
-    return 0;
+    /*
+     * O caso-base é o que encerra a recursão. Sem ele — ou com ele errado —
+     * a função chama a si mesma até estourar a pilha.
+     *
+     * Vale para 0 e para 1 porque 0! = 1 e 1! = 1.
+     */
+    if ($n <= 1) {
+        return 1;
+    }
+
+    return $n * fatorial($n - 1);
 }
 
 function fibonacci(int $n): int
 {
-    // TODO: implemente de forma recursiva
-    return 0;
+    // Dois casos-base, porque a conta depende dos DOIS anteriores.
+    if ($n <= 0) {
+        return 0;
+    }
+
+    if ($n === 1) {
+        return 1;
+    }
+
+    return fibonacci($n - 1) + fibonacci($n - 2);
 }
 
 function potencia(int $base, int $expoente): int
 {
-    // TODO: implemente de forma recursiva
-    return 0;
+    // Qualquer número elevado a 0 é 1 — e é esse o caso-base.
+    if ($expoente <= 0) {
+        return 1;
+    }
+
+    return $base * potencia($base, $expoente - 1);
 }
 
 function somaDosDigitos(int $numero): int
 {
-    // TODO: implemente de forma recursiva
-    return 0;
+    $numero = abs($numero);
+
+    // Um dígito só: não há o que somar.
+    if ($numero < 10) {
+        return $numero;
+    }
+
+    // % 10 pega o último dígito; intdiv por 10 descarta ele e segue.
+    return ($numero % 10) + somaDosDigitos(intdiv($numero, 10));
 }
 
 function inverterRecursivo(string $texto): string
 {
-    // TODO: implemente de forma recursiva
-    return '';
+    // String vazia já está invertida — caso-base.
+    if ($texto === '') {
+        return '';
+    }
+
+    // Tira a primeira letra, inverte o resto, e joga a primeira no fim.
+    return inverterRecursivo(mb_substr($texto, 1)) . mb_substr($texto, 0, 1);
+}
+
+/**
+ * A mesma conta do fibonacci, guardando o que já foi calculado.
+ *
+ * O array é `static`: ele sobrevive entre as chamadas, inclusive entre as
+ * chamadas recursivas. Com ele, fibonacci(40) responde na hora.
+ */
+function fibonacciMemoizado(int $n): int
+{
+    static $jaCalculados = [];
+
+    if ($n <= 0) {
+        return 0;
+    }
+
+    if ($n === 1) {
+        return 1;
+    }
+
+    if (isset($jaCalculados[$n])) {
+        return $jaCalculados[$n];
+    }
+
+    return $jaCalculados[$n] = fibonacciMemoizado($n - 1) + fibonacciMemoizado($n - 2);
 }
 
 // ---------------------------------------------------------------- saída
@@ -96,3 +161,13 @@ echo 'somaDosDigitos(1234) = ' . somaDosDigitos(1234) . "\n";
 
 echo "\n--- Inverter recursivo ---\n";
 echo 'inverterRecursivo("obra") = ' . inverterRecursivo('obra') . "\n";
+
+echo "\n--- Memoização ---\n";
+
+$inicio = hrtime(true);
+$valor = fibonacciMemoizado(40);
+$msDecorridos = (hrtime(true) - $inicio) / 1_000_000;
+
+echo 'fibonacciMemoizado(40) = ' . $valor . "\n";
+echo 'tempo: ' . round($msDecorridos, 3) . " ms\n";
+echo "(a versão sem memoização levaria segundos para o mesmo número)\n";

@@ -51,18 +51,43 @@ Console.WriteLine($"R$ 59,90 com 15%  = {PrecoComDesconto(59.9, 15.0)}");
 
 static string[] Tabuada(int numero)
 {
-    // TODO: implemente
-    return [];
+    /*
+     * Aqui o tamanho é conhecido — são sempre 10 linhas —, então o array
+     * de tamanho fixo serve e evita a realocação que a List faria.
+     *
+     * É a diferença para o PHP: lá, $linhas[] = ... faz o array crescer
+     * sozinho porque todo array do PHP é, por baixo, um mapa ordenado.
+     */
+    string[] linhas = new string[10];
+
+    for (int i = 1; i <= 10; i++)
+    {
+        linhas[i - 1] = $"{numero} x {i} = {numero * i}";
+    }
+
+    return linhas;
 }
 
 static int SomaAte(int limite)
 {
-    // TODO: implemente
-    return 0;
+    int soma = 0;
+
+    // Com limite 0 (ou negativo) o laço não entra e a soma fica em 0.
+    for (int i = 1; i <= limite; i++)
+    {
+        soma += i;
+    }
+
+    return soma;
 }
 
 static double PrecoComDesconto(double preco, double percentual)
 {
-    // TODO: implemente
-    return 0.0;
+    /*
+     * MidpointRounding.AwayFromZero de propósito. O padrão do .NET é
+     * "para o par mais próximo" (banker's rounding): Math.Round(2.5) dá 2,
+     * não 3. É ótimo para estatística, porque não vicia a média para cima —
+     * e é péssimo para preço, porque ninguém espera que R$ 2,50 vire R$ 2.
+     */
+    return Math.Round(preco * (1 - percentual / 100), 2, MidpointRounding.AwayFromZero);
 }

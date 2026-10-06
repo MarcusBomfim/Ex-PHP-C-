@@ -48,6 +48,8 @@
 |
 */
 
+using System.Globalization;
+
 var conta = new ContaBancaria("Marcus", 1000m);
 var outra = new ContaBancaria("Ana");
 
@@ -88,42 +90,110 @@ catch (ArgumentException erro)
     Console.WriteLine($"Recusado, como esperado: {erro.Message}");
 }
 
+// E a prova de que o extrato devolvido não dá para adulterar de fora:
+Console.WriteLine($"\nO extrato devolvido é só de leitura? {conta.Extrato() is not List<string>}");
+
 public sealed class ContaBancaria
 {
-    // TODO: declare os campos privados (saldo e a lista do extrato)
+    private decimal _saldo;
+
+    private readonly List<string> _movimentacoes = [];
 
     public ContaBancaria(string titular, decimal saldoInicial = 0m)
     {
-        // TODO: implemente
-        Titular = "";
+        if (string.IsNullOrWhiteSpace(titular))
+        {
+            throw new ArgumentException("O titular da conta é obrigatório.", nameof(titular));
+        }
+
+        if (saldoInicial < 0m)
+        {
+            throw new ArgumentException("O saldo inicial não pode ser negativo.", nameof(saldoInicial));
+        }
+
+        Titular = titular.Trim();
+        _saldo = saldoInicial;
+
+        if (saldoInicial > 0m)
+        {
+            Registrar("deposito", saldoInicial);
+        }
     }
 
+    /*
+     * Propriedade com `get` só: dá para ler de fora, nunca para escrever.
+     * O compilador recusa `conta.Titular = "outro"` — não é convenção, é
+     * regra. É o que o PHP faz com `private readonly` mais um getter.
+     */
     public string Titular { get; }
 
-    public decimal Saldo
-    {
-        // TODO: implemente
-        get => 0m;
-    }
+    public decimal Saldo => _saldo;
 
     public void Depositar(decimal valor)
     {
-        // TODO: implemente
+        ExigirValorPositivo(valor);
+
+        _saldo += valor;
+        Registrar("deposito", valor);
     }
 
     public void Sacar(decimal valor)
     {
-        // TODO: implemente
+        ExigirValorPositivo(valor);
+
+        /*
+         * A conferência vem ANTES de mexer no saldo. Se fosse depois, a
+         * conta ficaria negativa por um instante — e bastaria uma exceção
+         * no meio do caminho para ela ficar assim de vez.
+         */
+        if (valor > _saldo)
+        {
+            throw new InvalidOperationException(
+                $"Saldo insuficiente: o saque é de R$ {valor:N2} e há R$ {_saldo:N2} disponíveis."
+            );
+        }
+
+        _saldo -= valor;
+        Registrar("saque", valor);
     }
 
-    public IReadOnlyList<string> Extrato()
-    {
-        // TODO: implemente
-        return [];
-    }
+    /*
+     * Devolver a List direto seria um furo no encapsulamento: quem recebe
+     * poderia dar Add e inventar uma movimentação que nunca aconteceu. A
+     * lista é referência, não cópia.
+     *
+     * AsReadOnly() devolve uma visão sem Add nem Remove sobre a mesma
+     * lista — sem copiar nada.
+     *
+     * No PHP isso não aparece, porque array é copiado na atribuição.
+     */
+    public IReadOnlyList<string> Extrato() => _movimentacoes.AsReadOnly();
 
     public void TransferirPara(ContaBancaria destino, decimal valor)
     {
-        // TODO: implemente
+        ArgumentNullException.ThrowIfNull(destino);
+
+        /*
+         * A ordem resolve sozinha o "se o saque falhar, nada acontece no
+         * destino": Sacar lança antes de Depositar ser chamado, e a
+         * execução nem chega na linha de baixo.
+         */
+        Sacar(valor);
+        destino.Depositar(valor);
+    }
+
+    private static void ExigirValorPositivo(decimal valor)
+    {
+        if (valor <= 0m)
+        {
+            throw new ArgumentException("O valor precisa ser maior que zero.", nameof(valor));
+        }
+    }
+
+    private void Registrar(string tipo, decimal valor)
+    {
+        // InvariantCulture no extrato: o enunciado pede "R$ 500.00" com
+        // ponto. Sem isso, a saída mudaria conforme a máquina de quem roda.
+        _movimentacoes.Add($"{tipo} R$ {valor.ToString("F2", CultureInfo.InvariantCulture)}");
     }
 }

@@ -48,45 +48,105 @@ declare(strict_types=1);
 
 final class ContaBancaria
 {
-    // TODO: declare as propriedades privadas ($titular, $saldo, $extrato)
+    private readonly string $titular;
+
+    private float $saldo;
+
+    /** @var string[] */
+    private array $extrato = [];
 
     public function __construct(string $titular, float $saldoInicial = 0.0)
     {
-        // TODO: implemente
+        $titular = trim($titular);
+
+        if ($titular === '') {
+            throw new InvalidArgumentException('O titular da conta é obrigatório.');
+        }
+
+        if ($saldoInicial < 0) {
+            throw new InvalidArgumentException('O saldo inicial não pode ser negativo.');
+        }
+
+        $this->titular = $titular;
+        $this->saldo = $saldoInicial;
+
+        if ($saldoInicial > 0) {
+            $this->registrar('deposito', $saldoInicial);
+        }
     }
 
     public function depositar(float $valor): void
     {
-        // TODO: implemente
+        $this->exigirValorPositivo($valor);
+
+        $this->saldo += $valor;
+        $this->registrar('deposito', $valor);
     }
 
     public function sacar(float $valor): void
     {
-        // TODO: implemente
+        $this->exigirValorPositivo($valor);
+
+        /*
+         * A conferência vem ANTES de mexer no saldo. Se fosse depois, a
+         * conta ficaria negativa por um instante — e bastaria uma exceção
+         * no meio do caminho para ela ficar assim de vez.
+         */
+        if ($valor > $this->saldo) {
+            throw new DomainException(sprintf(
+                'Saldo insuficiente: o saque é de R$ %s e há R$ %s disponíveis.',
+                number_format($valor, 2, ',', '.'),
+                number_format($this->saldo, 2, ',', '.'),
+            ));
+        }
+
+        $this->saldo -= $valor;
+        $this->registrar('saque', $valor);
     }
 
     public function saldo(): float
     {
-        // TODO: implemente
-        return 0.0;
+        return $this->saldo;
     }
 
     public function titular(): string
     {
-        // TODO: implemente
-        return '';
+        return $this->titular;
     }
 
     /** @return string[] */
     public function extrato(): array
     {
-        // TODO: implemente
-        return [];
+        /*
+         * Devolver $this->extrato direto não é problema aqui porque array
+         * em PHP é copiado na atribuição — quem recebe mexe na própria
+         * cópia. Em linguagens onde a lista é referência (C#, Java), isto
+         * exigiria devolver uma cópia ou uma visão só de leitura.
+         */
+        return $this->extrato;
     }
 
     public function transferirPara(self $destino, float $valor): void
     {
-        // TODO: implemente
+        /*
+         * A ordem resolve sozinha o "se o saque falhar, nada acontece no
+         * destino": sacar() lança antes de o depósito ser chamado, e a
+         * execução nem chega na linha de baixo.
+         */
+        $this->sacar($valor);
+        $destino->depositar($valor);
+    }
+
+    private function exigirValorPositivo(float $valor): void
+    {
+        if ($valor <= 0) {
+            throw new InvalidArgumentException('O valor precisa ser maior que zero.');
+        }
+    }
+
+    private function registrar(string $tipo, float $valor): void
+    {
+        $this->extrato[] = sprintf('%s R$ %.2f', $tipo, $valor);
     }
 }
 
