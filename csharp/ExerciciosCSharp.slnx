@@ -5,4 +5,9 @@
   <Project Path="04_ArraysEListas/04_ArraysEListas.csproj" />
   <Project Path="05_MetodosERecursao/05_MetodosERecursao.csproj" />
   <Project Path="06_Classes/06_Classes.csproj" />
+  <Project Path="07_Datas/07_Datas.csproj" />
+  <Project Path="08_Heranca/08_Heranca.csproj" />
+  <Project Path="09_Excecoes/09_Excecoes.csproj" />
+  <Project Path="10_Ordenacao/10_Ordenacao.csproj" />
+  <Project Path="11_ArquivosEJson/11_ArquivosEJson.csproj" />
 </Solution>

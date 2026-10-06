@@ -1,6 +1,6 @@
 # Exercícios — PHP e C#
 
-Seis exercícios, **os mesmos problemas nas duas linguagens**. A graça está aí: resolver a mesma coisa em PHP e em C# mostra o que é lógica de programação e o que é particularidade de linguagem.
+Onze exercícios, **os mesmos problemas nas duas linguagens**. A graça está aí: resolver a mesma coisa em PHP e em C# mostra o que é lógica de programação e o que é particularidade de linguagem.
 
 Cada arquivo tem o enunciado no topo e a solução comentada logo abaixo — os comentários explicam as decisões, não o que a linha faz.
 
@@ -14,6 +14,11 @@ Cada arquivo tem o enunciado no topo e a solução comentada logo abaixo — os 
 | 04 | Arrays, listas e dicionários | [04_arrays.php](php/04_arrays.php) | [04_ArraysEListas](csharp/04_ArraysEListas/Program.cs) |
 | 05 | Funções e recursão | [05_funcoes_e_recursao.php](php/05_funcoes_e_recursao.php) | [05_MetodosERecursao](csharp/05_MetodosERecursao/Program.cs) |
 | 06 | Classes e objetos | [06_classes.php](php/06_classes.php) | [06_Classes](csharp/06_Classes/Program.cs) |
+| 07 | Datas e horas | [07_datas.php](php/07_datas.php) | [07_Datas](csharp/07_Datas/Program.cs) |
+| 08 | Herança, abstratas e interfaces | [08_heranca.php](php/08_heranca.php) | [08_Heranca](csharp/08_Heranca/Program.cs) |
+| 09 | Exceções e tratamento de erros | [09_excecoes.php](php/09_excecoes.php) | [09_Excecoes](csharp/09_Excecoes/Program.cs) |
+| 10 | Ordenação e busca | [10_ordenacao.php](php/10_ordenacao.php) | [10_Ordenacao](csharp/10_Ordenacao/Program.cs) |
+| 11 | Arquivos e JSON | [11_arquivos_e_json.php](php/11_arquivos_e_json.php) | [11_ArquivosEJson](csharp/11_ArquivosEJson/Program.cs) |
 
 Cada arquivo tem, no fim, as chamadas que imprimem os resultados — os mesmos nas duas linguagens, para dar para comparar a saída lado a lado.
 
@@ -54,6 +59,20 @@ Algumas diferenças só ficam claras depois de escrever os dois lados:
 **O arredondamento do .NET.** `Math.Round` usa, por padrão, arredondamento "para o par mais próximo": `Math.Round(2.5)` dá **2**, não 3. É correto para estatística e errado para preço. Os exercícios usam `MidpointRounding.AwayFromZero`, que é o comportamento que o `round()` do PHP já tem.
 
 **O extrato que dá para adulterar.** No exercício 06, devolver a `List<string>` direto permitiria que quem recebe desse `Add` e inventasse uma movimentação. A lista é referência. Por isso o retorno é `IReadOnlyList<string>` via `AsReadOnly()`. No PHP o problema não existe: array é copiado na atribuição.
+
+**O `DateOnly` que o PHP não tem.** No exercício 07, o C# tem um tipo que guarda só a data, sem hora. No PHP é preciso zerar a hora na mão com `setTime(0, 0)` em toda comparação — esquecer disso é a origem clássica do erro de "um dia a mais".
+
+**O `printf` que conta bytes.** Ainda no 10, a tabela do PHP saía torta nas linhas com acento: `printf("%-22s")` e `str_pad` contam **bytes**, e "Nível" tem 5 letras em 6 bytes. A correção usa `mb_strlen`. Em C# o alinhamento de interpolação (`,-22`) conta caracteres e o problema não aparece.
+
+**O `double` dividido por zero não lança em C#.** No exercício 09, `10.0 / 0.0` devolve `∞` em vez de erro — a norma IEEE 754 manda isso, e o programa segue com um número que contamina toda conta depois dele. Com `int` o comportamento é outro: aí sim lança. No PHP, `/` lança nos dois casos.
+
+**`TryParse` em vez de exceção.** Também no 09: em C#, montar o stack trace de uma exceção custa caro, e por isso a biblioteca padrão oferece `int.TryParse`, que devolve `bool`. Num laço sobre mil linhas de CSV a diferença é de ordem de grandeza. É a resposta da linguagem para "não use exceção em fluxo esperado".
+
+**`usort` ordena no lugar; `OrderBy` não.** No exercício 10, a versão PHP precisa copiar o array antes de ordenar para não alterar o do chamador. O LINQ devolve uma sequência nova e o cuidado some — mas `Array.Sort` e `List.Sort` voltam a ordenar no lugar, então a atenção continua necessária em C#, só que em outros métodos.
+
+**JSON tipado.** No exercício 11, `LerJson<Obra>` devolve um objeto `Obra` com campos conferidos pelo compilador. No PHP o retorno é array associativo, e `$dados['nomo']` — com erro de digitação — só falha quando a linha roda.
+
+**O retorno que dá para ignorar.** Ainda no 11: `file_put_contents` do PHP devolve `false` em caso de falha, e ignorar esse retorno é o erro mais comum com arquivo — o disco enche e o programa segue achando que salvou. `File.WriteAllText` lança, e não há como deixar passar sem querer.
 
 ## Sugestão de ordem
 
