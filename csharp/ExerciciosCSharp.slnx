@@ -10,4 +10,8 @@
   <Project Path="09_Excecoes/09_Excecoes.csproj" />
   <Project Path="10_Ordenacao/10_Ordenacao.csproj" />
   <Project Path="11_ArquivosEJson/11_ArquivosEJson.csproj" />
+  <Project Path="12_Enums/12_Enums.csproj" />
+  <Project Path="13_Conjuntos/13_Conjuntos.csproj" />
+  <Project Path="14_Regex/14_Regex.csproj" />
+  <Project Path="15_FuncoesDeOrdemSuperior/15_FuncoesDeOrdemSuperior.csproj" />
 </Solution>

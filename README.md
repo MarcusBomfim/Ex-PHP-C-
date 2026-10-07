@@ -1,10 +1,12 @@
 # Exercícios — PHP e C#
 
-Onze exercícios, **os mesmos problemas nas duas linguagens**. A graça está aí: resolver a mesma coisa em PHP e em C# mostra o que é lógica de programação e o que é particularidade de linguagem.
+Quinze exercícios, **os mesmos problemas nas duas linguagens**. A graça está aí: resolver a mesma coisa em PHP e em C# mostra o que é lógica de programação e o que é particularidade de linguagem.
 
-Cada arquivo tem o enunciado no topo e a solução comentada logo abaixo — os comentários explicam as decisões, não o que a linha faz.
+Todos têm o enunciado no topo do arquivo. Os de **01 a 11** vêm com a solução comentada logo abaixo — os comentários explicam as decisões, não o que a linha faz. Os de **12 a 15** estão só com o enunciado e as assinaturas, para resolver.
 
 ## Exercícios
+
+### Resolvidos
 
 | Nº | Tema | PHP | C# |
 | --- | --- | --- | --- |
@@ -19,6 +21,17 @@ Cada arquivo tem o enunciado no topo e a solução comentada logo abaixo — os 
 | 09 | Exceções e tratamento de erros | [09_excecoes.php](php/09_excecoes.php) | [09_Excecoes](csharp/09_Excecoes/Program.cs) |
 | 10 | Ordenação e busca | [10_ordenacao.php](php/10_ordenacao.php) | [10_Ordenacao](csharp/10_Ordenacao/Program.cs) |
 | 11 | Arquivos e JSON | [11_arquivos_e_json.php](php/11_arquivos_e_json.php) | [11_ArquivosEJson](csharp/11_ArquivosEJson/Program.cs) |
+
+### A resolver
+
+| Nº | Tema | PHP | C# |
+| --- | --- | --- | --- |
+| 12 | Enums | [12_enums.php](php/12_enums.php) | [12_Enums](csharp/12_Enums/Program.cs) |
+| 13 | Conjuntos | [13_conjuntos.php](php/13_conjuntos.php) | [13_Conjuntos](csharp/13_Conjuntos/Program.cs) |
+| 14 | Expressões regulares | [14_regex.php](php/14_regex.php) | [14_Regex](csharp/14_Regex/Program.cs) |
+| 15 | Funções de ordem superior | [15_funcoes_de_ordem_superior.php](php/15_funcoes_de_ordem_superior.php) | [15_FuncoesDeOrdemSuperior](csharp/15_FuncoesDeOrdemSuperior/Program.cs) |
+
+Nesses quatro, as funções estão com `// TODO` e devolvem valor vazio. Rodar o arquivo mostra a saída zerada — é assim que se sabe o que ainda falta. O 15 em C# tem uma exceção: o experimento final sobre captura de variável já roda, porque não depende de nenhuma implementação.
 
 Cada arquivo tem, no fim, as chamadas que imprimem os resultados — os mesmos nas duas linguagens, para dar para comparar a saída lado a lado.
 
