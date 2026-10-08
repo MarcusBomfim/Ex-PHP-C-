@@ -110,38 +110,146 @@ foreach (string linha in linhas)
 
 static bool TemFormatoDeCpf(string texto)
 {
-    // TODO: implemente
-    return false;
+    /*
+     * O ^ e o $ são a parte que mais se esquece. Sem eles, a regex casa um
+     * PEDAÇO de qualquer texto: "123.456.789-091" passaria, porque os 14
+     * primeiros caracteres formam o padrão e o "1" sobrando é ignorado.
+     */
+    return Padroes.Cpf().IsMatch(texto);
 }
 
 static List<int> ExtrairNumeros(string texto)
 {
-    // TODO: implemente
-    return [];
+    // Matches devolve a coleção de casamentos; cada um tem o texto casado
+    // em .Value. O int.Parse é seguro aqui porque a regex só casou dígitos.
+    return Padroes.Numero()
+        .Matches(texto)
+        .Select(m => int.Parse(m.Value))
+        .ToList();
 }
 
 static string MascararTelefone(string texto)
 {
-    // TODO: implemente
-    return "";
+    /*
+     * Os parênteses do telefone precisam ser escapados — \( e \) —, porque
+     * parêntese solto em regex abre grupo de captura.
+     *
+     * Na substituição, $1 e $2 são os grupos capturados: o DDD e os quatro
+     * últimos dígitos. O miolo some atrás dos asteriscos.
+     */
+    return Padroes.Telefone().Replace(texto, "($1) *****-$2");
 }
 
 static List<string> SepararPorPontuacao(string texto)
 {
-    // TODO: implemente
-    return [];
+    /*
+     * O + depois da classe é o que resolve os "espaços repetidos": ele faz
+     * a regex consumir a sequência inteira de separadores de uma vez. Sem
+     * ele, "areia;  brita" produziria itens vazios no meio.
+     *
+     * O C# não tem o PREG_SPLIT_NO_EMPTY do PHP — o Where no fim faz esse
+     * papel, descartando o que sobra nas pontas.
+     */
+    return Padroes.Pontuacao()
+        .Split(texto.Trim())
+        .Where(parte => !string.IsNullOrEmpty(parte))
+        .ToList();
 }
 
 static List<string> ProblemasDaSenha(string senha)
 {
-    // TODO: implemente
-    return [];
+    var problemas = new List<string>();
+
+    if (senha.Length < 8)
+    {
+        problemas.Add("ao menos 8 caracteres");
+    }
+
+    /*
+     * Para estas quatro, os métodos de char batem a regex: são mais
+     * rápidos, mais legíveis e não precisam ser compilados.
+     *
+     * "Símbolo" definido pela negativa — o que não é letra nem dígito.
+     * Listar os símbolos aceitos deixaria de fora os que ninguém lembrou.
+     */
+    if (!senha.Any(char.IsUpper))
+    {
+        problemas.Add("ao menos uma letra maiúscula");
+    }
+
+    if (!senha.Any(char.IsLower))
+    {
+        problemas.Add("ao menos uma letra minúscula");
+    }
+
+    if (!senha.Any(char.IsDigit))
+    {
+        problemas.Add("ao menos um número");
+    }
+
+    if (!senha.Any(c => !char.IsLetterOrDigit(c)))
+    {
+        problemas.Add("ao menos um símbolo");
+    }
+
+    return problemas;
 }
 
 static LinhaDeLog? LerLinhaDeLog(string linha)
 {
-    // TODO: implemente — use grupos nomeados: (?<nivel>ERRO|AVISO|INFO)
-    return null;
+    Match casamento = Padroes.LinhaDeLog().Match(linha);
+
+    if (!casamento.Success)
+    {
+        return null;
+    }
+
+    /*
+     * Grupos NOMEADOS, lidos por Groups["nome"].
+     *
+     * A alternativa é Groups[1], [2], [3] — e aí basta alguém inserir um
+     * grupo no meio da regex para todos os índices de baixo saírem do
+     * lugar em silêncio. Com nome, inserir grupo não quebra nada.
+     */
+    return new LinhaDeLog(
+        casamento.Groups["data"].Value,
+        casamento.Groups["nivel"].Value,
+        casamento.Groups["mensagem"].Value
+    );
 }
 
 public sealed record LinhaDeLog(string Data, string Nivel, string Mensagem);
+
+/*
+ * As regexes num lugar só, com [GeneratedRegex].
+ *
+ * Esse atributo faz o compilador GERAR o código de casamento em tempo de
+ * compilação, em vez de interpretar o padrão a cada execução. É mais
+ * rápido que `new Regex(...)` e muito mais rápido que os métodos estáticos
+ * `Regex.IsMatch(texto, padrao)`, que recompilam o padrão toda vez.
+ *
+ * No PHP não há equivalente: o preg_* mantém um cache interno de padrões
+ * já compilados, e o problema é menor — mas também não há como garantir
+ * que o padrão está certo antes de rodar. Aqui, um erro de sintaxe na
+ * regex é erro de COMPILAÇÃO.
+ *
+ * O @"..." é string verbatim: dentro dela a barra invertida é literal, e
+ * não é preciso escrever \\d para dizer \d.
+ */
+internal static partial class Padroes
+{
+    [GeneratedRegex(@"^\d{3}\.\d{3}\.\d{3}-\d{2}$")]
+    public static partial Regex Cpf();
+
+    [GeneratedRegex(@"\d+")]
+    public static partial Regex Numero();
+
+    [GeneratedRegex(@"\((\d{2})\)\s*\d{5}-(\d{4})")]
+    public static partial Regex Telefone();
+
+    [GeneratedRegex(@"[\s,;.]+")]
+    public static partial Regex Pontuacao();
+
+    [GeneratedRegex(@"^\[(?<data>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] (?<nivel>ERRO|AVISO|INFO) (?<mensagem>.+)$")]
+    public static partial Regex LinhaDeLog();
+}

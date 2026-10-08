@@ -134,14 +134,33 @@ static List<TSaida> AplicarEmTodos<TEntrada, TSaida>(
     IEnumerable<TEntrada> itens,
     Func<TEntrada, TSaida> transformacao)
 {
-    // TODO: implemente à mão, com foreach — sem Select
-    return [];
+    var resultado = new List<TSaida>();
+
+    // É literalmente isto que o Select faz — com uma diferença: o Select é
+    // PREGUIÇOSO. Ele não percorre nada até alguém iterar o resultado;
+    // esta versão percorre na hora. Para 10 itens dá no mesmo; para uma
+    // sequência infinita, só a do LINQ funciona.
+    foreach (TEntrada item in itens)
+    {
+        resultado.Add(transformacao(item));
+    }
+
+    return resultado;
 }
 
 static List<T> Filtrar<T>(IEnumerable<T> itens, Func<T, bool> criterio)
 {
-    // TODO: implemente à mão, com foreach — sem Where
-    return [];
+    var resultado = new List<T>();
+
+    foreach (T item in itens)
+    {
+        if (criterio(item))
+        {
+            resultado.Add(item);
+        }
+    }
+
+    return resultado;
 }
 
 static TAcumulado Reduzir<T, TAcumulado>(
@@ -149,32 +168,98 @@ static TAcumulado Reduzir<T, TAcumulado>(
     Func<TAcumulado, T, TAcumulado> acumulador,
     TAcumulado inicial)
 {
-    // TODO: implemente à mão, com foreach — sem Aggregate
-    return inicial;
+    TAcumulado acumulado = inicial;
+
+    /*
+     * O valor inicial não é detalhe: ele define o TIPO do resultado — que
+     * pode ser diferente do tipo dos itens — e o que sai quando a lista é
+     * vazia. Somar começa em 0, concatenar começa em "", multiplicar
+     * começa em 1.
+     *
+     * O Aggregate do LINQ tem uma sobrecarga sem valor inicial, que usa o
+     * primeiro item. Ela lança InvalidOperationException em lista vazia, e
+     * é por isso que esta assinatura exige o inicial.
+     */
+    foreach (T item in itens)
+    {
+        acumulado = acumulador(acumulado, item);
+    }
+
+    return acumulado;
 }
 
 static Func<T, T> Compor<T>(Func<T, T> depois, Func<T, T> antes)
 {
-    // TODO: devolva uma lambda que encadeia as duas
-    return valor => valor;
+    /*
+     * A ordem de leitura é de dentro para fora: `antes` roda primeiro, e o
+     * resultado dele alimenta `depois`. É a mesma convenção da matemática,
+     * onde (f ∘ g)(x) significa f(g(x)).
+     */
+    return valor => depois(antes(valor));
 }
 
 static Func<int> CriarContador(int inicio = 0)
 {
-    // TODO: devolva uma lambda com estado próprio
-    return () => 0;
+    int proximo = inicio;
+
+    /*
+     * Aqui está a diferença para o PHP. Lá, esta closure precisaria
+     * declarar `use (&$proximo)` — por referência — e com `use ($proximo)`
+     * o contador travaria no valor inicial.
+     *
+     * Em C# a captura é automática e sempre por referência à VARIÁVEL, não
+     * ao valor. O compilador move `proximo` para um objeto escondido que
+     * sobrevive ao fim do método, e a lambda guarda a referência a ele.
+     *
+     * Cada chamada a CriarContador cria um objeto novo — é por isso que
+     * dois contadores não compartilham estado.
+     */
+    return () => proximo++;
 }
 
 static Func<T, TResultado> Memoizar<T, TResultado>(Func<T, TResultado> funcao)
     where T : notnull
 {
-    // TODO: devolva uma versão que guarda os resultados
-    return funcao;
+    var cache = new Dictionary<T, TResultado>();
+
+    return entrada =>
+    {
+        /*
+         * TryGetValue em vez de ContainsKey seguido de acesso: faz uma
+         * busca só no dicionário em vez de duas.
+         *
+         * O `where T : notnull` na assinatura existe porque chave de
+         * Dictionary não pode ser null — sem ele o compilador avisa.
+         */
+        if (!cache.TryGetValue(entrada, out TResultado? guardado))
+        {
+            guardado = funcao(entrada);
+            cache[entrada] = guardado;
+        }
+
+        return guardado;
+    };
 }
 
 static Dictionary<TChave, List<T>> AgruparPor<T, TChave>(IEnumerable<T> itens, Func<T, TChave> chave)
     where TChave : notnull
 {
-    // TODO: implemente
-    return [];
+    var grupos = new Dictionary<TChave, List<T>>();
+
+    foreach (T item in itens)
+    {
+        TChave k = chave(item);
+
+        // A lista interna precisa ser criada na primeira vez. No PHP,
+        // $grupos[$k][] = $item faz isso sozinho.
+        if (!grupos.TryGetValue(k, out List<T>? doGrupo))
+        {
+            doGrupo = [];
+            grupos[k] = doGrupo;
+        }
+
+        doGrupo.Add(item);
+    }
+
+    return grupos;
 }

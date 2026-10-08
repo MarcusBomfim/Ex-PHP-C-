@@ -12,9 +12,6 @@ declare(strict_types=1);
 |
 | O cenário: prioridade de um chamado de suporte.
 |
-| O enum já está declarado abaixo com os quatro casos. Implemente os
-| métodos.
-|
 | 1) rotulo(): string
 |    Baixa -> "Baixa"   Media -> "Média"   Alta -> "Alta"   Critica -> "Crítica"
 |
@@ -33,20 +30,12 @@ declare(strict_types=1);
 |    Texto desconhecido lança ValueError com uma mensagem que liste as
 |    opções válidas.
 |
-|    deTexto("ALTA")   -> Prioridade::Alta
-|    deTexto("urgente") -> ValueError
-|
 | 6) static ordenadasPorUrgencia(): array
 |    Da mais urgente para a menos: [Critica, Alta, Media, Baixa]
 |
 | 7) function chamadosUrgentes(array $chamados): array   (fora do enum)
 |    Recebe uma lista de ['titulo' => string, 'prioridade' => Prioridade]
 |    e devolve só os títulos dos urgentes, da maior urgência para a menor.
-|
-| Dica sobre o `match`: dentro de um enum, `match($this)` cobrindo todos os
-| casos dispensa o `default`. E é melhor sem ele — se um caso novo for
-| acrescentado ao enum amanhã, o PHP lança UnhandledMatchError em vez de
-| devolver silenciosamente o valor padrão errado.
 |
 | Rode com:  php php/12_enums.php
 |
@@ -61,39 +50,70 @@ enum Prioridade: string
 
     public function rotulo(): string
     {
-        // TODO: implemente
-        return '';
+        /*
+         * Sem `default`, de propósito. Com os quatro casos listados, o
+         * match é exaustivo. Se um quinto caso entrar no enum amanhã e
+         * esquecerem deste método, o PHP lança UnhandledMatchError na hora
+         * — em vez de deixar um rótulo vazio circular pelo sistema.
+         *
+         * É o oposto do `default => ''`, que esconde o esquecimento.
+         */
+        return match ($this) {
+            self::Baixa => 'Baixa',
+            self::Media => 'Média',
+            self::Alta => 'Alta',
+            self::Critica => 'Crítica',
+        };
     }
 
     public function prazoEmHoras(): int
     {
-        // TODO: implemente
-        return 0;
+        return match ($this) {
+            self::Baixa => 72,
+            self::Media => 24,
+            self::Alta => 8,
+            self::Critica => 2,
+        };
     }
 
     public function ehUrgente(): bool
     {
-        // TODO: implemente
-        return false;
+        // Também sem default: acrescentar um caso novo obriga a decidir se
+        // ele é urgente, em vez de herdar um "false" por omissão.
+        return match ($this) {
+            self::Baixa, self::Media => false,
+            self::Alta, self::Critica => true,
+        };
     }
 
     public function descricao(): string
     {
-        // TODO: implemente usando rotulo() e prazoEmHoras()
-        return '';
+        // Montada a partir dos outros dois. Repetir "Crítica" e "2" aqui
+        // criaria um segundo lugar para errar quando o prazo mudar.
+        return sprintf('%s — atendimento em até %dh', $this->rotulo(), $this->prazoEmHoras());
     }
 
     public static function deTexto(string $texto): self
     {
-        // TODO: implemente
-        return self::Baixa;
+        /*
+         * tryFrom devolve null em vez de lançar, e é isso que permite
+         * trocar o erro do PHP por uma mensagem que diz as opções.
+         *
+         * `from()` lançaria "is not a valid backing value for enum", que
+         * não ajuda quem está preenchendo um formulário.
+         */
+        return self::tryFrom(mb_strtolower(trim($texto)))
+            ?? throw new ValueError(sprintf(
+                'Prioridade "%s" não existe. Use uma destas: %s.',
+                trim($texto),
+                implode(', ', array_column(self::cases(), 'value')),
+            ));
     }
 
     /** @return self[] */
     public static function ordenadasPorUrgencia(): array
     {
-        // TODO: implemente
-        return [];
+        return [self::Critica, self::Alta, self::Media, self::Baixa];
     }
 }
 
@@ -103,8 +123,28 @@ enum Prioridade: string
  */
 function chamadosUrgentes(array $chamados): array
 {
-    // TODO: implemente
-    return [];
+    $urgentes = array_values(array_filter(
+        $chamados,
+        static fn (array $chamado): bool => $chamado['prioridade']->ehUrgente(),
+    ));
+
+    /*
+     * O peso de cada prioridade vem da posição em ordenadasPorUrgencia().
+     * Escrever a ordem de novo aqui criaria um segundo lugar para manter —
+     * e os dois sairiam do ar juntos no dia em que uma prioridade nova
+     * aparecesse.
+     */
+    $ordem = array_flip(array_map(
+        static fn (Prioridade $p): string => $p->value,
+        Prioridade::ordenadasPorUrgencia(),
+    ));
+
+    usort(
+        $urgentes,
+        static fn (array $a, array $b): int => $ordem[$a['prioridade']->value] <=> $ordem[$b['prioridade']->value],
+    );
+
+    return array_column($urgentes, 'titulo');
 }
 
 // ---------------------------------------------------------------- saída

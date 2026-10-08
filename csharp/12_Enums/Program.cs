@@ -121,43 +121,106 @@ public static class PrioridadeExtensoes
 {
     public static string Rotulo(this Prioridade prioridade)
     {
-        // TODO: implemente
-        return "";
+        /*
+         * Sem o `_ =>` final, de propósito — e aqui está a diferença mais
+         * importante para o PHP.
+         *
+         * Com os quatro casos listados e sem descarte, o compilador avisa
+         * (CS8509) que o switch pode não cobrir todo valor possível. Esse
+         * aviso é o que lembra de voltar aqui quando um caso novo entrar
+         * no enum.
+         *
+         * Com `_ => ""`, o aviso some e o caso novo passa a devolver
+         * string vazia em silêncio. No PHP, o match sem default LANÇA em
+         * tempo de execução; em C#, o alerta vem antes, na compilação —
+         * mas é só um aviso, e por isso some com facilidade.
+         */
+        return prioridade switch
+        {
+            Prioridade.Baixa => "Baixa",
+            Prioridade.Media => "Média",
+            Prioridade.Alta => "Alta",
+            Prioridade.Critica => "Crítica",
+            _ => throw new ArgumentOutOfRangeException(nameof(prioridade), prioridade, "Prioridade desconhecida."),
+        };
     }
 
     public static int PrazoEmHoras(this Prioridade prioridade)
     {
-        // TODO: implemente
-        return 0;
+        return prioridade switch
+        {
+            Prioridade.Baixa => 72,
+            Prioridade.Media => 24,
+            Prioridade.Alta => 8,
+            Prioridade.Critica => 2,
+            _ => throw new ArgumentOutOfRangeException(nameof(prioridade), prioridade, "Prioridade desconhecida."),
+        };
     }
 
     public static bool EhUrgente(this Prioridade prioridade)
     {
-        // TODO: implemente
-        return false;
+        // `is ... or ...` em vez de dois ==. Lê melhor e não deixa escrever
+        // `prioridade == Prioridade.Alta || Prioridade.Critica`, que compila
+        // em algumas linguagens e faz outra coisa.
+        return prioridade is Prioridade.Alta or Prioridade.Critica;
     }
 
     public static string Descricao(this Prioridade prioridade)
     {
-        // TODO: implemente usando Rotulo() e PrazoEmHoras()
-        return "";
+        // Montada a partir dos outros dois. Repetir "Crítica" e "2" aqui
+        // criaria um segundo lugar para errar quando o prazo mudar.
+        return $"{prioridade.Rotulo()} — atendimento em até {prioridade.PrazoEmHoras()}h";
     }
 
     public static Prioridade DeTexto(string texto)
     {
-        // TODO: implemente
-        return Prioridade.Baixa;
+        string limpo = texto.Trim();
+
+        /*
+         * Enum.TryParse sozinho não basta, por dois motivos:
+         *
+         *  - ele aceita o NÚMERO: TryParse("3") devolve Prioridade.Alta,
+         *    o que quase nunca é o que se quer num campo de formulário;
+         *  - ele aceita valor fora do enum: TryParse("99") devolve
+         *    (Prioridade)99 e diz que deu certo.
+         *
+         * O primeiro filtro resolve o número, o Enum.IsDefined resolve o
+         * valor inventado. No PHP nada disso é preciso: tryFrom só aceita
+         * os valores declarados.
+         */
+        if (!limpo.Any(char.IsDigit)
+            && Enum.TryParse(limpo, ignoreCase: true, out Prioridade prioridade)
+            && Enum.IsDefined(prioridade))
+        {
+            return prioridade;
+        }
+
+        throw new ArgumentException(
+            $"Prioridade \"{limpo}\" não existe. Use uma destas: "
+            + string.Join(", ", Enum.GetNames<Prioridade>()) + ".",
+            nameof(texto)
+        );
     }
 
     public static IReadOnlyList<Prioridade> OrdenadasPorUrgencia()
     {
-        // TODO: implemente
-        return [];
+        /*
+         * Montada a partir do próprio enum, e não escrita à mão. Os valores
+         * numéricos (1 a 4) crescem com a urgência, então ordenar
+         * decrescente dá a ordem certa — e uma prioridade nova entra no
+         * lugar certo sozinha, desde que receba o número coerente.
+         */
+        return Enum.GetValues<Prioridade>()
+            .OrderByDescending(p => (int)p)
+            .ToList();
     }
 
     public static List<string> ChamadosUrgentes(IEnumerable<Chamado> chamados)
     {
-        // TODO: implemente
-        return [];
+        return chamados
+            .Where(c => c.Prioridade.EhUrgente())
+            .OrderByDescending(c => (int)c.Prioridade)
+            .Select(c => c.Titulo)
+            .ToList();
     }
 }

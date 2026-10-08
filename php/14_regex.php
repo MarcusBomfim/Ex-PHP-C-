@@ -16,49 +16,21 @@ declare(strict_types=1);
 | são conta, não padrão. Aqui se confere formato; a validação de verdade é
 | outro assunto.
 |
-| 1) function temFormatoDeCpf(string $texto): bool
-|    Aceita exatamente 000.000.000-00.
-|
-|    temFormatoDeCpf("123.456.789-09")  -> true
+| 1) temFormatoDeCpf("123.456.789-09")  -> true
 |    temFormatoDeCpf("12345678909")     -> false  (sem pontuação)
 |    temFormatoDeCpf("123.456.789-091") -> false  (sobrou dígito)
 |
-|    Dica: sem o ^ e o $, a regex casa um pedaço no meio de qualquer
-|    texto — e é por isso que a terceira linha acima costuma passar por
-|    engano.
+| 2) extrairNumeros("laje 3, pilar 12 e 7 vigas") -> [3, 12, 7]
 |
-| 2) function extrairNumeros(string $texto): array
-|    Todos os números inteiros do texto, como int.
+| 3) mascararTelefone: (11) 91234-5678 -> (11) *****-5678
 |
-|    extrairNumeros("laje 3, pilar 12 e 7 vigas") -> [3, 12, 7]
+| 4) separarPorPontuacao("cimento, areia;  brita.") -> ["cimento","areia","brita"]
 |
-| 3) function mascararTelefone(string $texto): string
-|    Troca todo telefone no formato (11) 91234-5678 por (11) *****-5678.
+| 5) problemasDaSenha: lista o que falta, em vez de só "senha fraca".
 |
-| 4) function separarPorPontuacao(string $texto): array
-|    Divide em palavras, descartando vírgula, ponto, ponto e vírgula e
-|    espaços repetidos. Sem itens vazios no resultado.
-|
-|    separarPorPontuacao("cimento, areia;  brita.") -> ["cimento","areia","brita"]
-|
-| 5) function problemasDaSenha(string $senha): array
-|    Lista o que falta, em vez de só dizer "senha fraca":
-|      - "ao menos 8 caracteres"
-|      - "ao menos uma letra maiúscula"
-|      - "ao menos uma letra minúscula"
-|      - "ao menos um número"
-|      - "ao menos um símbolo"
-|    Senha boa devolve [].
-|
-| 6) function lerLinhaDeLog(string $linha): ?array
-|    Extrai de "[2026-10-06 14:32:01] ERRO Falha ao gravar o diário"
-|    o array ['data' => '2026-10-06 14:32:01', 'nivel' => 'ERRO',
-|             'mensagem' => 'Falha ao gravar o diário'].
-|    Linha fora do formato devolve null.
-|
-|    Dica: use grupos NOMEADOS — (?<nivel>ERRO|AVISO|INFO) — para ler o
-|    resultado por nome em vez de por número. Regex com oito grupos
-|    numerados é impossível de manter.
+| 6) lerLinhaDeLog("[2026-10-06 14:32:01] ERRO Falha ao gravar o diário")
+|      -> ['data' => '2026-10-06 14:32:01', 'nivel' => 'ERRO',
+|          'mensagem' => 'Falha ao gravar o diário']
 |
 | Rode com:  php php/14_regex.php
 |
@@ -66,42 +38,110 @@ declare(strict_types=1);
 
 function temFormatoDeCpf(string $texto): bool
 {
-    // TODO: implemente
-    return false;
+    /*
+     * O ^ e o $ são a parte que mais se esquece. Sem eles, a regex casa um
+     * PEDAÇO de qualquer texto: "123.456.789-091" passaria, porque os 14
+     * primeiros caracteres formam o padrão e o "1" sobrando é ignorado.
+     *
+     * preg_match devolve 1, 0 ou false (em erro de sintaxe da regex). O
+     * === 1 cobre os três casos; um `if (preg_match(...))` trataria o
+     * false como verdadeiro.
+     */
+    return preg_match('/^\d{3}\.\d{3}\.\d{3}-\d{2}$/', $texto) === 1;
 }
 
 /** @return int[] */
 function extrairNumeros(string $texto): array
 {
-    // TODO: implemente
-    return [];
+    // preg_match_all enche $achados por referência; o retorno é a
+    // quantidade de casamentos, não a lista.
+    preg_match_all('/\d+/', $texto, $achados);
+
+    return array_map(intval(...), $achados[0]);
 }
 
 function mascararTelefone(string $texto): string
 {
-    // TODO: implemente
-    return '';
+    /*
+     * Os parênteses do telefone precisam ser escapados — \( e \) —, porque
+     * parêntese solto em regex abre grupo de captura.
+     *
+     * $1 e $2 na substituição são os grupos capturados: o DDD e os quatro
+     * últimos dígitos. O miolo some atrás dos asteriscos.
+     */
+    return preg_replace('/\((\d{2})\)\s*\d{5}-(\d{4})/', '($1) *****-$2', $texto) ?? $texto;
 }
 
 /** @return string[] */
 function separarPorPontuacao(string $texto): array
 {
-    // TODO: implemente
-    return [];
+    /*
+     * O + depois da classe é o que resolve o "espaços repetidos": ele faz
+     * a regex consumir a sequência inteira de separadores de uma vez.
+     * Sem ele, "areia;  brita" produziria dois itens vazios no meio.
+     *
+     * PREG_SPLIT_NO_EMPTY descarta o que sobra nas pontas — o ponto final
+     * da frase, por exemplo, geraria um item vazio no fim.
+     */
+    return preg_split('/[\s,;.]+/', trim($texto), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 }
 
 /** @return string[] */
 function problemasDaSenha(string $senha): array
 {
-    // TODO: implemente
-    return [];
+    $problemas = [];
+
+    // mb_strlen, e não strlen: senha com acento tem mais bytes que letras,
+    // e contar bytes deixaria passar uma senha mais curta do que parece.
+    if (mb_strlen($senha) < 8) {
+        $problemas[] = 'ao menos 8 caracteres';
+    }
+
+    $exigencias = [
+        '/[A-Z]/' => 'ao menos uma letra maiúscula',
+        '/[a-z]/' => 'ao menos uma letra minúscula',
+        '/\d/' => 'ao menos um número',
+        // "Símbolo" definido pela negativa: o que não é letra nem número.
+        // Listar os símbolos aceitos deixaria de fora os que ninguém lembrou.
+        '/[^a-zA-Z0-9]/' => 'ao menos um símbolo',
+    ];
+
+    foreach ($exigencias as $padrao => $descricao) {
+        if (preg_match($padrao, $senha) !== 1) {
+            $problemas[] = $descricao;
+        }
+    }
+
+    return $problemas;
 }
 
 /** @return array{data: string, nivel: string, mensagem: string}|null */
 function lerLinhaDeLog(string $linha): ?array
 {
-    // TODO: implemente
-    return null;
+    /*
+     * Grupos NOMEADOS: (?<data>...), (?<nivel>...), (?<mensagem>...).
+     *
+     * A alternativa é $achados[1], [2], [3] — e aí basta alguém inserir um
+     * grupo no meio da regex para todos os índices de baixo saírem do
+     * lugar em silêncio. Com nome, inserir grupo não quebra nada.
+     *
+     * O nível é uma lista fechada (ERRO|AVISO|INFO) em vez de \w+: assim a
+     * função recusa uma linha com nível inventado em vez de aceitar
+     * qualquer palavra ali.
+     */
+    $padrao = '/^\[(?<data>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] '
+        . '(?<nivel>ERRO|AVISO|INFO) '
+        . '(?<mensagem>.+)$/u';
+
+    if (preg_match($padrao, $linha, $achados) !== 1) {
+        return null;
+    }
+
+    return [
+        'data' => $achados['data'],
+        'nivel' => $achados['nivel'],
+        'mensagem' => $achados['mensagem'],
+    ];
 }
 
 // ---------------------------------------------------------------- saída

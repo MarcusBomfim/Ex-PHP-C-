@@ -18,34 +18,19 @@ declare(strict_types=1);
 |
 | Todas as funções devem devolver arrays reindexados a partir de 0.
 |
-| 1) function semRepetidos(array $itens): array
-|    semRepetidos(["a", "b", "a", "c", "b"]) -> ["a", "b", "c"]
+| 1) semRepetidos(["a","b","a","c","b"]) -> ["a","b","c"]
 |    A ordem da primeira aparição é mantida.
 |
-| 2) function uniao(array $a, array $b): array
-|    uniao([1, 2, 3], [3, 4]) -> [1, 2, 3, 4]
+| 2) uniao([1,2,3], [3,4])              -> [1,2,3,4]
+| 3) intersecao([1,2,3], [2,3,4])       -> [2,3]
+| 4) diferenca([1,2,3], [2])            -> [1,3]
+| 5) diferencaSimetrica([1,2,3], [3,4]) -> [1,2,4]
 |
-| 3) function intersecao(array $a, array $b): array
-|    intersecao([1, 2, 3], [2, 3, 4]) -> [2, 3]
+| 6) contemTodos([1,2,3], [1,3]) -> true
+|    contemTodos([1,2,3], [1,9]) -> false
+|    contemTodos([1,2,3], [])    -> true   (conjunto vazio cabe em tudo)
 |
-| 4) function diferenca(array $a, array $b): array
-|    O que está em $a e NÃO está em $b.
-|    diferenca([1, 2, 3], [2]) -> [1, 3]
-|
-| 5) function diferencaSimetrica(array $a, array $b): array
-|    O que está em um ou no outro, mas não nos dois.
-|    diferencaSimetrica([1, 2, 3], [3, 4]) -> [1, 2, 4]
-|
-| 6) function contemTodos(array $conjunto, array $itens): bool
-|    contemTodos([1, 2, 3], [1, 3])    -> true
-|    contemTodos([1, 2, 3], [1, 9])    -> false
-|    contemTodos([1, 2, 3], [])        -> true   (conjunto vazio cabe em tudo)
-|
-| 7) function maisFrequentes(array $itens, int $quantos): array
-|    Os que mais se repetem, do mais para o menos frequente.
-|    Devolve [valor => quantidade].
-|
-|    maisFrequentes(["a","b","a","c","a","b"], 2) -> ["a" => 3, "b" => 2]
+| 7) maisFrequentes(["a","b","a","c","a","b"], 2) -> ["a" => 3, "b" => 2]
 |
 | Um caso de uso real: comparar as ferramentas que saíram do almoxarifado
 | com as que voltaram. A diferença é o que sumiu.
@@ -60,8 +45,15 @@ declare(strict_types=1);
  */
 function semRepetidos(array $itens): array
 {
-    // TODO: implemente
-    return [];
+    /*
+     * array_unique mantém a PRIMEIRA aparição de cada valor e preserva as
+     * chaves originais — então sobram buracos. O array_values reindexa.
+     *
+     * Sem ele, o resultado serializado para JSON viraria objeto
+     * {"0":"a","1":"b","3":"c"} em vez de lista. É a mesma armadilha do
+     * array_filter no exercício 04.
+     */
+    return array_values(array_unique($itens));
 }
 
 /**
@@ -71,8 +63,9 @@ function semRepetidos(array $itens): array
  */
 function uniao(array $a, array $b): array
 {
-    // TODO: implemente
-    return [];
+    // Junta tudo e tira as repetições. A ordem fica: primeiro os de $a,
+    // depois os de $b que ainda não apareceram.
+    return semRepetidos(array_merge($a, $b));
 }
 
 /**
@@ -82,8 +75,12 @@ function uniao(array $a, array $b): array
  */
 function intersecao(array $a, array $b): array
 {
-    // TODO: implemente
-    return [];
+    /*
+     * array_intersect devolve os elementos de $a que existem em $b —
+     * inclusive repetidos, se $a os tiver. Daí o semRepetidos por cima:
+     * conjunto não tem elemento repetido.
+     */
+    return semRepetidos(array_intersect($a, $b));
 }
 
 /**
@@ -93,8 +90,7 @@ function intersecao(array $a, array $b): array
  */
 function diferenca(array $a, array $b): array
 {
-    // TODO: implemente
-    return [];
+    return semRepetidos(array_diff($a, $b));
 }
 
 /**
@@ -104,8 +100,9 @@ function diferenca(array $a, array $b): array
  */
 function diferencaSimetrica(array $a, array $b): array
 {
-    // TODO: implemente
-    return [];
+    // "O que só está em A" mais "o que só está em B". Montada a partir das
+    // duas funções acima em vez de refazer a conta.
+    return uniao(diferenca($a, $b), diferenca($b, $a));
 }
 
 /**
@@ -114,8 +111,15 @@ function diferencaSimetrica(array $a, array $b): array
  */
 function contemTodos(array $conjunto, array $itens): bool
 {
-    // TODO: implemente
-    return false;
+    /*
+     * "Nada em $itens está fora de $conjunto." Escrito assim, o caso do
+     * array vazio sai de graça: nada fora de nada, logo true — que é a
+     * definição matemática de subconjunto.
+     *
+     * Um foreach com flag daria o mesmo resultado, mas exigiria lembrar
+     * de inicializar a flag como true.
+     */
+    return array_diff($itens, $conjunto) === [];
 }
 
 /**
@@ -124,8 +128,19 @@ function contemTodos(array $conjunto, array $itens): bool
  */
 function maisFrequentes(array $itens, int $quantos): array
 {
-    // TODO: implemente
-    return [];
+    // array_count_values já devolve [valor => quantidade].
+    $contagem = array_count_values($itens);
+
+    /*
+     * arsort ordena pelo VALOR, do maior para o menor, preservando a
+     * ligação chave => valor. Um sort() comum jogaria as chaves fora e
+     * sobrariam só os números.
+     */
+    arsort($contagem);
+
+    // O `true` preserva as chaves; sem ele, array_slice reindexaria para
+    // 0, 1, 2 e os nomes se perderiam.
+    return array_slice($contagem, 0, max(0, $quantos), true);
 }
 
 // ---------------------------------------------------------------- saída

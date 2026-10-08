@@ -2,11 +2,9 @@
 
 Quinze exercícios, **os mesmos problemas nas duas linguagens**. A graça está aí: resolver a mesma coisa em PHP e em C# mostra o que é lógica de programação e o que é particularidade de linguagem.
 
-Todos têm o enunciado no topo do arquivo. Os de **01 a 11** vêm com a solução comentada logo abaixo — os comentários explicam as decisões, não o que a linha faz. Os de **12 a 15** estão só com o enunciado e as assinaturas, para resolver.
+Cada arquivo tem o enunciado no topo e a solução comentada logo abaixo — os comentários explicam as decisões, não o que a linha faz.
 
 ## Exercícios
-
-### Resolvidos
 
 | Nº | Tema | PHP | C# |
 | --- | --- | --- | --- |
@@ -21,17 +19,10 @@ Todos têm o enunciado no topo do arquivo. Os de **01 a 11** vêm com a soluçã
 | 09 | Exceções e tratamento de erros | [09_excecoes.php](php/09_excecoes.php) | [09_Excecoes](csharp/09_Excecoes/Program.cs) |
 | 10 | Ordenação e busca | [10_ordenacao.php](php/10_ordenacao.php) | [10_Ordenacao](csharp/10_Ordenacao/Program.cs) |
 | 11 | Arquivos e JSON | [11_arquivos_e_json.php](php/11_arquivos_e_json.php) | [11_ArquivosEJson](csharp/11_ArquivosEJson/Program.cs) |
-
-### A resolver
-
-| Nº | Tema | PHP | C# |
-| --- | --- | --- | --- |
 | 12 | Enums | [12_enums.php](php/12_enums.php) | [12_Enums](csharp/12_Enums/Program.cs) |
 | 13 | Conjuntos | [13_conjuntos.php](php/13_conjuntos.php) | [13_Conjuntos](csharp/13_Conjuntos/Program.cs) |
 | 14 | Expressões regulares | [14_regex.php](php/14_regex.php) | [14_Regex](csharp/14_Regex/Program.cs) |
 | 15 | Funções de ordem superior | [15_funcoes_de_ordem_superior.php](php/15_funcoes_de_ordem_superior.php) | [15_FuncoesDeOrdemSuperior](csharp/15_FuncoesDeOrdemSuperior/Program.cs) |
-
-Nesses quatro, as funções estão com `// TODO` e devolvem valor vazio. Rodar o arquivo mostra a saída zerada — é assim que se sabe o que ainda falta. O 15 em C# tem uma exceção: o experimento final sobre captura de variável já roda, porque não depende de nenhuma implementação.
 
 Cada arquivo tem, no fim, as chamadas que imprimem os resultados — os mesmos nas duas linguagens, para dar para comparar a saída lado a lado.
 
@@ -86,6 +77,14 @@ Algumas diferenças só ficam claras depois de escrever os dois lados:
 **JSON tipado.** No exercício 11, `LerJson<Obra>` devolve um objeto `Obra` com campos conferidos pelo compilador. No PHP o retorno é array associativo, e `$dados['nomo']` — com erro de digitação — só falha quando a linha roda.
 
 **O retorno que dá para ignorar.** Ainda no 11: `file_put_contents` do PHP devolve `false` em caso de falha, e ignorar esse retorno é o erro mais comum com arquivo — o disco enche e o programa segue achando que salvou. `File.WriteAllText` lança, e não há como deixar passar sem querer.
+
+**Enum é objeto no PHP, inteiro em C#.** No 12, os métodos moram dentro do enum do PHP; em C# é preciso uma classe estática de extensões. E a consequência é séria: o `match` sem `default` do PHP **lança** quando um caso novo não é tratado; o `switch` do C# só emite um aviso de compilação, que some no instante em que alguém escreve `_ => ""`. O mesmo arquivo em C# também mostra que `(Prioridade)99` é um cast válido e produz um enum que não existe — daí o `Enum.IsDefined` na conversão de texto.
+
+**`Distinct`, não `HashSet`.** No 13, os dois tiram repetições, mas só o `Distinct` garante a ordem da primeira aparição. `HashSet` não promete ordem nenhuma — hoje ele costuma sair na ordem de inserção, e isso é detalhe de implementação, não contrato. É por isso que as funções devolvem `List<string>`.
+
+**Regex conferida na compilação.** No 14, o `[GeneratedRegex]` do C# gera o código de casamento em tempo de compilação: um erro de sintaxe no padrão vira erro de build. No PHP, uma regex malformada só falha quando a linha roda.
+
+**`use (&$x)` contra captura automática.** No 15, o contador do PHP exige capturar por referência — com `use ($x)` ele trava no valor inicial, e o arquivo demonstra isso rodando. Em C# a captura é automática e sempre por variável, então o mesmo contador funciona sem cerimônia. O preço aparece no experimento final: três closures criadas num `for` devolvem `[3, 3, 3]`, e num `foreach`, `[0, 1, 2]`.
 
 ## Sugestão de ordem
 

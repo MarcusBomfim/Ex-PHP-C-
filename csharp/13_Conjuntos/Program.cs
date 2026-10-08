@@ -80,42 +80,80 @@ foreach (var par in MaisFrequentes(apontamentos, 2))
 
 static List<string> SemRepetidos(IEnumerable<string> itens)
 {
-    // TODO: implemente — e repare que a ordem da primeira aparição importa
-    return [];
+    /*
+     * Distinct do LINQ, e não new HashSet<string>(itens).ToList().
+     *
+     * Os dois tiram as repetições, mas só o Distinct garante a ORDEM da
+     * primeira aparição. O HashSet não promete ordem nenhuma — hoje ele
+     * costuma sair na ordem de inserção, e isso é detalhe de
+     * implementação, não contrato.
+     *
+     * É a mesma razão de todas as funções aqui devolverem List<string> em
+     * vez de HashSet<string>.
+     */
+    return itens.Distinct().ToList();
 }
 
 static List<string> Uniao(IEnumerable<string> a, IEnumerable<string> b)
 {
-    // TODO: implemente
-    return [];
+    // Union já tira as repetições dos dois lados — não precisa de Distinct
+    // depois. A ordem fica: os de `a`, depois os de `b` que são novos.
+    return a.Union(b).ToList();
 }
 
 static List<string> Intersecao(IEnumerable<string> a, IEnumerable<string> b)
 {
-    // TODO: implemente
-    return [];
+    // Intersect também já devolve sem repetição, mesmo que `a` traga o
+    // mesmo item duas vezes.
+    return a.Intersect(b).ToList();
 }
 
 static List<string> Diferenca(IEnumerable<string> a, IEnumerable<string> b)
 {
-    // TODO: implemente
-    return [];
+    /*
+     * Except, e não ExceptWith.
+     *
+     * Os métodos do HashSet terminados em "With" alteram o conjunto NO
+     * LUGAR e devolvem void; os do LINQ devolvem uma sequência nova e não
+     * tocam na original. Num método que recebe IEnumerable de fora, mexer
+     * no que chegou seria efeito colateral escondido.
+     */
+    return a.Except(b).ToList();
 }
 
 static List<string> DiferencaSimetrica(IEnumerable<string> a, IEnumerable<string> b)
 {
-    // TODO: implemente
-    return [];
+    // "O que só está em A" mais "o que só está em B". Montada a partir das
+    // operações acima em vez de refazer a conta.
+    return a.Except(b).Union(b.Except(a)).ToList();
 }
 
 static bool ContemTodos(IEnumerable<string> conjunto, IEnumerable<string> itens)
 {
-    // TODO: implemente
-    return false;
+    /*
+     * IsSupersetOf é a pergunta exata, e o caso do conjunto vazio sai de
+     * graça: todo conjunto contém o vazio, que é a definição matemática.
+     *
+     * A alternativa `itens.All(conjunto.Contains)` dá o mesmo resultado,
+     * mas percorre a lista inteira a cada item — O(n×m). O HashSet
+     * resolve em O(n+m).
+     */
+    return new HashSet<string>(conjunto).IsSupersetOf(itens);
 }
 
 static Dictionary<string, int> MaisFrequentes(IEnumerable<string> itens, int quantos)
 {
-    // TODO: implemente
-    return [];
+    /*
+     * GroupBy agrupa pelo próprio valor; Count() conta cada grupo.
+     *
+     * Dictionary<K,V> não garante ordem de iteração — na prática ele
+     * costuma sair na ordem de inserção, e é com isso que esta função
+     * conta. Se a ordem fosse um requisito firme, o certo seria devolver
+     * uma List<(string, int)>.
+     */
+    return itens
+        .GroupBy(item => item)
+        .OrderByDescending(grupo => grupo.Count())
+        .Take(Math.Max(0, quantos))
+        .ToDictionary(grupo => grupo.Key, grupo => grupo.Count());
 }

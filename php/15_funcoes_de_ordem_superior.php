@@ -14,45 +14,17 @@ declare(strict_types=1);
 | devolve uma. `usort` é uma: recebe a comparação. Este exercício é sobre
 | escrever as suas.
 |
-| Nos três primeiros, IMPLEMENTE À MÃO — nada de array_map, array_filter
+| Nos três primeiros, IMPLEMENTADO À MÃO — nada de array_map, array_filter
 | ou array_reduce. O objetivo é entender o que eles fazem por dentro.
 |
-| 1) function aplicarEmTodos(array $itens, callable $transformacao): array
-|    aplicarEmTodos([1,2,3], fn($n) => $n * 2) -> [2, 4, 6]
+| 1) aplicarEmTodos([1,2,3], fn($n) => $n * 2) -> [2, 4, 6]
+| 2) filtrar([1,2,3,4], fn($n) => $n % 2 === 0) -> [2, 4]
+| 3) reduzir([1,2,3], fn($t, $n) => $t + $n, 0) -> 6
 |
-| 2) function filtrar(array $itens, callable $criterio): array
-|    Reindexa o resultado a partir de 0.
-|    filtrar([1,2,3,4], fn($n) => $n % 2 === 0) -> [2, 4]
-|
-| 3) function reduzir(array $itens, callable $acumulador, mixed $inicial): mixed
-|    O acumulador recebe (acumulado, item) e devolve o novo acumulado.
-|    reduzir([1,2,3], fn($t, $n) => $t + $n, 0) -> 6
-|    reduzir(["a","b"], fn($t, $s) => $t . $s, "") -> "ab"
-|
-| 4) function compor(callable $depois, callable $antes): callable
-|    Devolve uma função que roda $antes e passa o resultado para $depois.
-|
-|    $dobrarEIncrementar = compor(fn($n) => $n + 1, fn($n) => $n * 2);
-|    $dobrarEIncrementar(5) -> 11    (5*2 = 10, depois +1)
-|
-| 5) function criarContador(int $inicio = 0): callable
-|    Devolve uma função que, a cada chamada, devolve o próximo número.
-|    Dois contadores criados separadamente NÃO compartilham estado.
-|
-|    $c = criarContador();  $c() -> 0;  $c() -> 1;  $c() -> 2
-|
-|    Dica: é aqui que entra o `use (&$variavel)` — por REFERÊNCIA. Com
-|    `use ($variavel)` a closure guarda uma cópia e o contador trava no
-|    valor inicial para sempre.
-|
-| 6) function memoizar(callable $funcao): callable
-|    Devolve uma versão que guarda os resultados já calculados. Chamar duas
-|    vezes com o mesmo argumento executa a função original uma vez só.
-|
-| 7) function agruparPor(array $itens, callable $chave): array
-|    Agrupa pelo resultado da função.
-|
-|    agruparPor(["ana","bruno","alice"], fn($n) => $n[0])
+| 4) compor(fn($n) => $n + 1, fn($n) => $n * 2)(5) -> 11
+| 5) criarContador(): $c() -> 0, 1, 2...  (dois contadores não se misturam)
+| 6) memoizar: chamar duas vezes com o mesmo argumento executa uma vez só
+| 7) agruparPor(["ana","bruno","alice"], fn($n) => $n[0])
 |      -> ["a" => ["ana","alice"], "b" => ["bruno"]]
 |
 | Rode com:  php php/15_funcoes_de_ordem_superior.php
@@ -66,8 +38,15 @@ declare(strict_types=1);
  */
 function aplicarEmTodos(array $itens, callable $transformacao): array
 {
-    // TODO: implemente à mão, com foreach — sem array_map
-    return [];
+    $resultado = [];
+
+    // É literalmente isto que o array_map faz: percorre e guarda o que a
+    // função devolveu, na mesma ordem.
+    foreach ($itens as $item) {
+        $resultado[] = $transformacao($item);
+    }
+
+    return $resultado;
 }
 
 /**
@@ -77,8 +56,18 @@ function aplicarEmTodos(array $itens, callable $transformacao): array
  */
 function filtrar(array $itens, callable $criterio): array
 {
-    // TODO: implemente à mão, com foreach — sem array_filter
-    return [];
+    $resultado = [];
+
+    foreach ($itens as $item) {
+        if ($criterio($item)) {
+            // $resultado[] já reindexa sozinho. É por isso que esta versão
+            // não precisa do array_values que o array_filter exige: lá as
+            // chaves originais são preservadas, aqui nascem novas.
+            $resultado[] = $item;
+        }
+    }
+
+    return $resultado;
 }
 
 /**
@@ -87,8 +76,21 @@ function filtrar(array $itens, callable $criterio): array
  */
 function reduzir(array $itens, callable $acumulador, mixed $inicial): mixed
 {
-    // TODO: implemente à mão, com foreach — sem array_reduce
-    return $inicial;
+    $acumulado = $inicial;
+
+    /*
+     * O valor inicial não é detalhe: ele define o tipo do resultado e o
+     * que sai quando a lista é vazia. Somar começa em 0, concatenar começa
+     * em "", multiplicar começa em 1.
+     *
+     * Reduzir sem valor inicial — usando o primeiro item — quebra na lista
+     * vazia, e é por isso que esta assinatura o exige.
+     */
+    foreach ($itens as $item) {
+        $acumulado = $acumulador($acumulado, $item);
+    }
+
+    return $acumulado;
 }
 
 /**
@@ -98,15 +100,32 @@ function reduzir(array $itens, callable $acumulador, mixed $inicial): mixed
  */
 function compor(callable $depois, callable $antes): callable
 {
-    // TODO: devolva uma closure que encadeia as duas
-    return static fn (mixed $valor): mixed => $valor;
+    /*
+     * A ordem de leitura é de dentro para fora: $antes roda primeiro, e o
+     * resultado dele alimenta $depois. É a mesma convenção da matemática,
+     * onde (f ∘ g)(x) significa f(g(x)).
+     */
+    return static fn (mixed $valor): mixed => $depois($antes($valor));
 }
 
 /** @return callable(): int */
 function criarContador(int $inicio = 0): callable
 {
-    // TODO: devolva uma closure com estado próprio
-    return static fn (): int => 0;
+    $proximo = $inicio;
+
+    /*
+     * `use (&$proximo)` — por REFERÊNCIA. É o ponto do exercício.
+     *
+     * Com `use ($proximo)`, a closure guardaria uma CÓPIA do valor no
+     * momento em que foi criada, e o $proximo++ lá dentro incrementaria a
+     * cópia. O contador devolveria sempre o mesmo número.
+     *
+     * Cada chamada a criarContador() cria um $proximo novo, e é por isso
+     * que dois contadores não compartilham estado.
+     */
+    return static function () use (&$proximo): int {
+        return $proximo++;
+    };
 }
 
 /**
@@ -115,8 +134,26 @@ function criarContador(int $inicio = 0): callable
  */
 function memoizar(callable $funcao): callable
 {
-    // TODO: devolva uma versão que guarda os resultados
-    return $funcao;
+    $cache = [];
+
+    return static function (mixed ...$argumentos) use ($funcao, &$cache): mixed {
+        /*
+         * serialize transforma os argumentos numa string única — é o que
+         * permite usar array, objeto ou vários argumentos como chave, e
+         * não só escalares.
+         *
+         * array_key_exists em vez de isset: um resultado que seja null é
+         * um resultado válido, e o isset o trataria como "não está no
+         * cache", recalculando para sempre.
+         */
+        $chave = serialize($argumentos);
+
+        if (!array_key_exists($chave, $cache)) {
+            $cache[$chave] = $funcao(...$argumentos);
+        }
+
+        return $cache[$chave];
+    };
 }
 
 /**
@@ -126,8 +163,15 @@ function memoizar(callable $funcao): callable
  */
 function agruparPor(array $itens, callable $chave): array
 {
-    // TODO: implemente
-    return [];
+    $grupos = [];
+
+    foreach ($itens as $item) {
+        // $grupos[$k][] cria o array interno na primeira vez — detalhe do
+        // PHP que o C# não tem (lá é preciso criar a lista antes).
+        $grupos[$chave($item)][] = $item;
+    }
+
+    return $grupos;
 }
 
 // ---------------------------------------------------------------- saída
@@ -188,3 +232,17 @@ echo "\n--- Agrupar por ---\n";
 foreach (agruparPor(['ana', 'bruno', 'alice', 'carlos', 'bia'], static fn (string $n): string => $n[0]) as $letra => $nomes) {
     echo "  {$letra}: " . implode(', ', $nomes) . "\n";
 }
+
+echo "\n--- O que acontece com `use` por valor ---\n";
+
+$porValor = static function (): callable {
+    $n = 0;
+
+    // Sem o & — a closure guarda uma cópia.
+    return static function () use ($n): int {
+        return $n++;
+    };
+};
+
+$travado = $porValor();
+echo '  contador sem &: ' . $travado() . ', ' . $travado() . ', ' . $travado() . "   (trava no 0)\n";
